@@ -1,0 +1,90 @@
+
+import requests
+import json
+
+from bs4 import BeautifulSoup
+import requests
+
+# Versiones
+import bs4 # Solo para el chequeo
+print("Versión de BeautifulSoup:",bs4.__version__)
+print("Versión de requests:", requests.__version__)
+
+# En caso de no tener la versión que se usa en este curso
+!pip3 install beautifulsoup4==4.11.2
+!pip3 install requests==2.27.1
+!pip install openai==0.28
+
+import csv
+import openai
+
+# Configuración de la API de OpenAI con la clave API directamente
+openai.api_key = 'CLAVE_API_OPENAI'
+
+# Función para generar un resumen usando la API de OpenAI
+def generar_resumen(texto):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0125",
+            messages=[
+                {"role": "system", "content": "eres una asistente de convocatorias de trabajo."},
+                {"role": "user", "content": (
+                    f"Después, analiza los textos y bríndame la información de manera ordenada;"
+                    f" No me envíes contenido con ## o **."
+                    f" Bríndame 1 párrafo de bajada corto en formato <p> de la convocatoria de trabajo."
+                    f" Proporciona un H2 que diga: <h2>Requisitos:</h2>"
+                    f" Proporciona párrafos en formato lista <ul><li> de puntos que incluya todo esto:"
+                    f" <strong>Fecha máxima para postular:</strong>"
+                    f" <strong>¿Quiénes pueden postular?:</strong>"
+                    f" <strong>Tipo de proyecto:</strong>"
+                    f" <strong>Vacantes:</strong>"
+                    f" <strong>Dirección de la empresa:</strong>"
+                    f" <strong>Nombre de la empresa:</strong>"
+                    f" <strong>Región:</strong>"
+                    f" <strong>Localidad:</strong>"
+                    f" <strong>Formación:</strong>"
+                    f" <strong>Requisitos:</strong>"
+                    f" <strong>Ciudades o regiones de trabajo de la convocatoria:</strong>"
+                    f" Proporciona un H2 que diga: <h2>Condiciones:</h2>"
+                    f" Bríndame párrafos en lista de puntos <ul><li> de condiciones del contrato."
+                    f" Proporciona un H2 que diga: <h2>¿Cómo postular?</h2>"
+                    f" Bríndame párrafos en formato lista de puntos <ul><li> de cómo postular al trabajo."
+                    f" Proporciona un H2 que diga: <h2>Recomendaciones antes de postular:</h2>"
+                    f" Bríndame párrafos en formato lista de puntos <ul><li> de recomendaciones para postular al trabajo."
+                    f" Aquí está el texto a resumir: {texto}"
+                )},
+            ],
+            max_tokens=800,      # Número máximo de tokens en la respuesta
+            temperature=0.8      # Temperatura para la generación de texto
+        )
+        # Ajustar el acceso a la respuesta
+        resumen = response.choices[0].message['content'].strip()
+        return resumen
+    except Exception as e:
+        return f"Error al generar resumen: {e}"
+
+# Leer el archivo contenido_outputss.csv
+input_file = 'contenido_outputss.csv'
+output_file_resumen = 'contenido_resumen.csv'
+
+# Leer el archivo de entrada y generar resúmenes
+with open(input_file, 'r', newline='', encoding='utf-8') as csvfile:
+    reader = csv.reader(csvfile)
+    headers = next(reader)
+    rows = list(reader)
+
+# Procesar cada fila para generar el resumen
+resumen_rows = []
+for row in rows:
+    url = row[0]
+    info_concatenada = row[1]
+    resumen = generar_resumen(info_concatenada)
+    resumen_rows.append([url, resumen])
+
+# Guardar el archivo CSV con los resúmenes
+with open(output_file_resumen, 'w', newline='', encoding='utf-8') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['URL', 'Resumen'])
+    writer.writerows(resumen_rows)
+
+print(f"Resúmenes generados y guardados en {output_file_resumen}")
